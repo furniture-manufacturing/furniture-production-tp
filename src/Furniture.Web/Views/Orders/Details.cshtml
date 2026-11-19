@@ -1,0 +1,63 @@
+@model Order
+@{
+    ViewData["Title"] = $"Заказ {Model.Number}";
+    var stage = Model.Stages.FirstOrDefault(s => s.Type == StageType.MeasurementAndApproval);
+    var measurers = stage is null
+        ? null
+        : string.Join(", ", stage.Assignments
+            .Where(a => a.RoleOnStage == EmployeeRole.Measurer && a.Status != AssignmentStatus.Cancelled)
+            .Select(a => a.Employee.FullName)
+            .Distinct());
+}
+
+<a class="back-link" asp-action="Index">К списку заказов</a>
+<div class="page-heading order-heading">
+    <div>
+        <h1>Заказ</h1>
+        <p class="order-number secondary-number">@Model.Number</p>
+    </div>
+    <span class="status-badge @(Model.Status == OrderStatus.New ? "status-waiting" : "")">@Model.Status.Ru()</span>
+</div>
+
+<div class="details-grid">
+    <section class="surface detail-panel">
+        <h2>Данные заказа</h2>
+        <dl class="detail-list">
+            <dt>Клиент</dt>
+            <dd>@Model.Client.FullName</dd>
+            <dt>Адрес выполнения</dt>
+            <dd>@Model.ExecutionAddress</dd>
+            <dt>Плановый срок</dt>
+            <dd>@Model.PlannedCompletionDate.ToString("dd.MM.yyyy")</dd>
+            <dt>Ответственный администратор</dt>
+            <dd>@Model.ResponsibleAdministrator.FullName</dd>
+            @if (!string.IsNullOrWhiteSpace(Model.CustomerWishes))
+            {
+                <dt>Пожелания клиента</dt>
+                <dd class="wishes">@Model.CustomerWishes</dd>
+            }
+        </dl>
+    </section>
+
+    @if (stage is not null)
+    {
+        <section class="surface detail-panel">
+            <h2>@stage.Type.Ru()</h2>
+            <dl class="detail-list">
+                <dt>Состояние этапа</dt>
+                <dd>@stage.Status.Ru()</dd>
+                <dt>Замерщик</dt>
+                <dd>
+                    @if (!string.IsNullOrEmpty(measurers))
+                    {
+                        @measurers
+                    }
+                    else
+                    {
+                        @(stage.Status == StageStatus.WaitingForAssignee ? "Ожидает замерщика" : "Без назначения")
+                    }
+                </dd>
+            </dl>
+        </section>
+    }
+</div>

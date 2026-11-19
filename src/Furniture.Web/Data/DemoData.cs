@@ -6,6 +6,8 @@ namespace Furniture.Web.Data;
 // Загружаются при первом запуске в Development, если таблица сотрудников пуста.
 public static class DemoData
 {
+    public const string AdministratorLogin = "admin";
+
     public static void Seed(FurnitureDbContext db)
     {
         if (db.Employees.Any()) return;
@@ -16,7 +18,7 @@ public static class DemoData
                 FullName = "Администратор Демо",
                 Phone = "+7 900 000-00-01",
                 Roles = new() { EmployeeRole.Administrator },
-                Login = "admin",
+                Login = AdministratorLogin,
                 PasswordHash = "not-set", // вход и пароли — вне этапа 3
                 IsActive = true
             },

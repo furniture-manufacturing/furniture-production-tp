@@ -1,4 +1,16 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+const client = document.getElementById("ClientId");
+const address = document.getElementById("ExecutionAddress");
 
-// Write your JavaScript code.
+if (client && address) {
+  let lastDefaultAddress = client.selectedOptions[0]?.dataset.address ?? "";
+
+  client.addEventListener("change", () => {
+    const defaultAddress = client.selectedOptions[0]?.dataset.address ?? "";
+
+    if (!address.value.trim() || address.value === lastDefaultAddress) {
+      address.value = defaultAddress;
+    }
+
+    lastDefaultAddress = defaultAddress;
+  });
+}

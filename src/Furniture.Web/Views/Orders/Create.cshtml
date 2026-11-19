@@ -1,0 +1,54 @@
+@model OrderForm
+@{
+    ViewData["Title"] = "Новый заказ";
+}
+
+<a class="back-link" asp-action="Index">К списку заказов</a>
+<div class="page-heading">
+    <h1>Новый заказ</h1>
+</div>
+
+<form class="surface form-panel" asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="form-field">
+        <div class="field-heading">
+            <label asp-for="ClientId" class="form-label"></label>
+            <a asp-controller="Clients" asp-action="Create">Добавить клиента</a>
+        </div>
+        <select asp-for="ClientId" class="form-select">
+            <option value="">Выберите клиента</option>
+            @foreach (var client in Model.Clients)
+            {
+                <option value="@client.Id" data-address="@client.DefaultAddress">@client.FullName (@client.Phone)</option>
+            }
+        </select>
+        <span asp-validation-for="ClientId" class="text-danger"></span>
+    </div>
+
+    <div class="form-field">
+        <label asp-for="ExecutionAddress" class="form-label"></label>
+        <input asp-for="ExecutionAddress" class="form-control" />
+        <span asp-validation-for="ExecutionAddress" class="text-danger"></span>
+    </div>
+
+    <div class="form-field date-field">
+        <label asp-for="PlannedCompletionDate" class="form-label"></label>
+        <input asp-for="PlannedCompletionDate" type="date" asp-format="{0:yyyy-MM-dd}" class="form-control" />
+        <span asp-validation-for="PlannedCompletionDate" class="text-danger"></span>
+    </div>
+
+    <div class="form-field">
+        <label asp-for="CustomerWishes" class="form-label"></label>
+        <textarea asp-for="CustomerWishes" class="form-control" rows="3"></textarea>
+    </div>
+
+    <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Создать заказ</button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Отмена</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

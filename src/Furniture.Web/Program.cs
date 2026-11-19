@@ -1,13 +1,15 @@
 using Furniture.Web.Data;
+using Furniture.Web.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Подключение PostgreSQL: строка берётся из конфигурации (appsettings.Development.json)
-builder.Services.AddDbContext<FurnitureDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("FurnitureDb")));
+var connectionString = builder.Configuration.GetConnectionString("FurnitureDb");
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException("Укажите ConnectionStrings:FurnitureDb в настройках приложения.");
 
-// MVC
+builder.Services.AddDbContext<FurnitureDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddScoped<OrderService>();
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
@@ -26,9 +28,9 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthorization();
 
