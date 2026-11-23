@@ -175,6 +175,50 @@ namespace Furniture.Web.Migrations
                     b.ToTable("EmployeeAssignments");
                 });
 
+            modelBuilder.Entity("Furniture.Web.Models.Measurement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly?>("ActualDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CustomerWishes")
+                        .HasColumnType("text");
+
+                    b.Property<int>("MeasurerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PlacementFeatures")
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly?>("PlannedDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("RoomDimensions")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MeasurerId");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("Measurements");
+                });
+
             modelBuilder.Entity("Furniture.Web.Models.Order", b =>
                 {
                     b.Property<int>("Id")
@@ -244,6 +288,59 @@ namespace Furniture.Web.Migrations
                     b.ToTable("Orders");
                 });
 
+            modelBuilder.Entity("Furniture.Web.Models.OrderItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdditionalCharacteristics")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("AgreedUnitPrice")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Depth")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("FurnitureType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Height")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Material")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Width")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("OrderItems");
+                });
+
             modelBuilder.Entity("Furniture.Web.Models.OrderStage", b =>
                 {
                     b.Property<int>("Id")
@@ -260,6 +357,9 @@ namespace Furniture.Web.Migrations
 
                     b.Property<DateOnly?>("PlannedDate")
                         .HasColumnType("date");
+
+                    b.Property<DateTime?>("QueuedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Result")
                         .HasColumnType("text");
@@ -279,9 +379,86 @@ namespace Furniture.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderId");
+                    b.HasIndex("OrderId", "Type")
+                        .IsUnique();
 
                     b.ToTable("OrderStages");
+                });
+
+            modelBuilder.Entity("Furniture.Web.Models.Payment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AdministratorId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Method")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdministratorId");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("Payments");
+                });
+
+            modelBuilder.Entity("Furniture.Web.Models.ProductElement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DeliveredQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("InstalledQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("OrderItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProblemComment")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ProducedQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RequiredQuantity")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderItemId");
+
+                    b.ToTable("ProductElements");
                 });
 
             modelBuilder.Entity("Furniture.Web.Models.ChangeHistory", b =>
@@ -321,6 +498,23 @@ namespace Furniture.Web.Migrations
                     b.Navigation("OrderStage");
                 });
 
+            modelBuilder.Entity("Furniture.Web.Models.Measurement", b =>
+                {
+                    b.HasOne("Furniture.Web.Models.Employee", "Measurer")
+                        .WithMany()
+                        .HasForeignKey("MeasurerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Furniture.Web.Models.Order", null)
+                        .WithMany("Measurements")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Measurer");
+                });
+
             modelBuilder.Entity("Furniture.Web.Models.Order", b =>
                 {
                     b.HasOne("Furniture.Web.Models.Client", "Client")
@@ -347,6 +541,15 @@ namespace Furniture.Web.Migrations
                     b.Navigation("ResponsibleAdministrator");
                 });
 
+            modelBuilder.Entity("Furniture.Web.Models.OrderItem", b =>
+                {
+                    b.HasOne("Furniture.Web.Models.Order", null)
+                        .WithMany("Items")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Furniture.Web.Models.OrderStage", b =>
                 {
                     b.HasOne("Furniture.Web.Models.Order", "Order")
@@ -358,9 +561,46 @@ namespace Furniture.Web.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("Furniture.Web.Models.Payment", b =>
+                {
+                    b.HasOne("Furniture.Web.Models.Employee", "Administrator")
+                        .WithMany()
+                        .HasForeignKey("AdministratorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Furniture.Web.Models.Order", null)
+                        .WithMany("Payments")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Administrator");
+                });
+
+            modelBuilder.Entity("Furniture.Web.Models.ProductElement", b =>
+                {
+                    b.HasOne("Furniture.Web.Models.OrderItem", null)
+                        .WithMany("Elements")
+                        .HasForeignKey("OrderItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Furniture.Web.Models.Order", b =>
                 {
+                    b.Navigation("Items");
+
+                    b.Navigation("Measurements");
+
+                    b.Navigation("Payments");
+
                     b.Navigation("Stages");
+                });
+
+            modelBuilder.Entity("Furniture.Web.Models.OrderItem", b =>
+                {
+                    b.Navigation("Elements");
                 });
 
             modelBuilder.Entity("Furniture.Web.Models.OrderStage", b =>

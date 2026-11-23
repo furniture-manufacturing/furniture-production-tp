@@ -26,5 +26,12 @@ public class Order
     public Order? ParentOrder { get; set; }
     public SubOrderReason? SubOrderReason { get; set; }
 
+    public List<OrderItem> Items { get; set; } = [];
+    public List<Measurement> Measurements { get; set; } = [];
+    public List<Payment> Payments { get; set; } = [];
+
+    public decimal NetPaid => Payments.Sum(payment => payment.Type == PaymentType.Receipt ? payment.Amount : -payment.Amount);
+    public decimal? Balance => AgreedCost - NetPaid;
+
     public List<OrderStage> Stages { get; set; } = new();
 }

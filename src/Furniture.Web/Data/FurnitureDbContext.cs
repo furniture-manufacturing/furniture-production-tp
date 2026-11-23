@@ -14,6 +14,11 @@ public class FurnitureDbContext : DbContext
     public DbSet<EmployeeAssignment> EmployeeAssignments => Set<EmployeeAssignment>();
     public DbSet<ChangeHistory> ChangeHistory => Set<ChangeHistory>();
 
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<ProductElement> ProductElements => Set<ProductElement>();
+    public DbSet<Measurement> Measurements => Set<Measurement>();
+    public DbSet<Payment> Payments => Set<Payment>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<Client>(e =>
@@ -71,6 +76,12 @@ public class FurnitureDbContext : DbContext
             e.HasOne(a => a.Employee).WithMany().HasForeignKey(a => a.EmployeeId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
+
+        b.Entity<OrderItem>().Property(i => i.AgreedUnitPrice).HasPrecision(12, 2);
+        b.Entity<Measurement>().HasOne(m => m.Measurer).WithMany().OnDelete(DeleteBehavior.Restrict);
+        b.Entity<Payment>().HasOne(p => p.Administrator).WithMany().OnDelete(DeleteBehavior.Restrict);
+        b.Entity<Payment>().Property(p => p.Amount).HasPrecision(12, 2);
+        b.Entity<OrderStage>().HasIndex(s => new { s.OrderId, s.Type }).IsUnique();
 
         b.Entity<ChangeHistory>(e =>
         {

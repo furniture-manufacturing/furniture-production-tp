@@ -7,6 +7,7 @@ public class OrderStage
     public Order Order { get; set; } = null!;
     public StageType Type { get; set; }
     public StageStatus Status { get; set; }
+    public DateTime? QueuedAt { get; set; }
     public DateOnly? PlannedDate { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }

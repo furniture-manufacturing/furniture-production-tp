@@ -15,3 +15,7 @@ public enum StageStatus { WaitingPreviousStage, WaitingForAssignee, Assigned, In
 public enum AssignmentStatus { Assigned, Accepted, Completed, Cancelled }
 
 public enum SubOrderReason { Addition, MissingPart, Defect, Rework }
+
+public enum MeasurementStatus { Scheduled, Completed }
+public enum PaymentMethod { Cash, Transfer, Card }
+public enum PaymentType { Receipt, Refund }

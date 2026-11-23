@@ -1,23 +1,49 @@
-﻿<!DOCTYPE html>
+@{
+    var section = ViewContext.RouteData.Values["controller"]?.ToString();
+    var signedIn = User.Identity?.IsAuthenticated == true;
+    var isAdmin = User.IsInRole(nameof(EmployeeRole.Administrator));
+    var pageClass = ViewData["Wide"] is true ? "workspace" : "workspace workspace--single";
+    string Selected(string controller) => controller == section ? "page" : "false";
+}
+<!doctype html>
 <html lang="ru">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] | Мебельное производство</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@ViewData["Title"] · Мебельное производство</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
+    <script src="~/js/site.js" asp-append-version="true" defer></script>
 </head>
-<body>
-    <header class="site-header">
-        <div class="page-width">
-            <a class="site-name" asp-controller="Orders" asp-action="Index">Мебельное производство</a>
-        </div>
+<body class="@(signedIn ? null : "account-page")">
+@if (signedIn)
+{
+    <header class="sidebar">
+        <a class="project-name" asp-controller="Home" asp-action="Index">Мебельное<br class="brand-break"> производство</a>
+        <nav aria-label="Разделы">
+            @if (isAdmin)
+            {
+                <a class="nav-link" aria-current="@Selected("Home")" asp-controller="Home" asp-action="Index">Обзор</a>
+                <a class="nav-link" aria-current="@Selected("Orders")" asp-controller="Orders" asp-action="Index">Заказы</a>
+                <a class="nav-link" aria-current="@Selected("Clients")" asp-controller="Clients" asp-action="Index">Клиенты</a>
+                <a class="nav-link" aria-current="@Selected("Employees")" asp-controller="Employees" asp-action="Index">Сотрудники</a>
+            }
+            <a class="nav-link" aria-current="@Selected("Assignments")" asp-controller="Assignments" asp-action="Index">Мои назначения</a>
+        </nav>
+        <form class="session-controls" asp-controller="Account" asp-action="Logout" method="post">
+            <span>@User.Identity?.Name</span>
+            <button type="submit">Выйти</button>
+        </form>
     </header>
-    <main class="page-width page-main">
+    <main class="@pageClass">
         @RenderBody()
     </main>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+}
+else
+{
+    <main class="account">
+        @RenderBody()
+    </main>
+}
+@await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

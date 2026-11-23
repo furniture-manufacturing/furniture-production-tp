@@ -1,46 +1,13 @@
 @model ClientForm
-@{
-    ViewData["Title"] = "Новый клиент";
-}
-
-<a class="back-link" asp-controller="Orders" asp-action="Create">К оформлению заказа</a>
-<div class="page-heading">
-    <h1>Новый клиент</h1>
+@{ ViewData["Title"] = "Новый клиент"; var forOrder = ViewBag.ForOrder is true; }
+<div class="content">
+    @if (forOrder) { <a class="back-link text-link" asp-controller="Orders" asp-action="Create">К оформлению заказа</a> }
+    else { <a class="back-link text-link" asp-action="Index">Все клиенты</a> }
+    <div class="page-heading"><h1>Новый клиент</h1></div>
+    <form class="editor-form order-form" asp-action="Create" method="post">
+        <input type="hidden" name="forOrder" value="@forOrder.ToString().ToLowerInvariant()">
+        <div asp-validation-summary="ModelOnly" role="alert"></div>
+        <partial name="_Fields" model="Model" />
+        <div class="form-actions"><button class="button button-primary">Сохранить клиента</button></div>
+    </form>
 </div>
-
-<form class="surface form-panel" asp-action="Create" method="post">
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-    <div class="form-field">
-        <label asp-for="FullName" class="form-label"></label>
-        <input asp-for="FullName" class="form-control" autocomplete="name" />
-        <span asp-validation-for="FullName" class="text-danger"></span>
-    </div>
-
-    <div class="form-field">
-        <label asp-for="Phone" class="form-label"></label>
-        <input asp-for="Phone" type="tel" class="form-control" autocomplete="tel" />
-        <span asp-validation-for="Phone" class="text-danger"></span>
-    </div>
-
-    <div class="form-field">
-        <label asp-for="DefaultAddress" class="form-label"></label>
-        <input asp-for="DefaultAddress" class="form-control" autocomplete="street-address" />
-        <span asp-validation-for="DefaultAddress" class="text-danger"></span>
-    </div>
-
-    <div class="form-field">
-        <label asp-for="Email" class="form-label">Электронная почта <span class="optional">(необязательно)</span></label>
-        <input asp-for="Email" type="email" class="form-control" autocomplete="email" />
-        <span asp-validation-for="Email" class="text-danger"></span>
-    </div>
-
-    <div class="form-actions">
-        <button class="btn btn-primary" type="submit">Сохранить клиента</button>
-        <a class="btn btn-outline-secondary" asp-controller="Orders" asp-action="Create">Отмена</a>
-    </div>
-</form>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}

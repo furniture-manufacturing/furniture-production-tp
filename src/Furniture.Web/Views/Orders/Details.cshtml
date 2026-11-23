@@ -1,63 +1,218 @@
 @model Order
+@using Furniture.Web.Services
 @{
     ViewData["Title"] = $"Заказ {Model.Number}";
-    var stage = Model.Stages.FirstOrDefault(s => s.Type == StageType.MeasurementAndApproval);
-    var measurers = stage is null
-        ? null
-        : string.Join(", ", stage.Assignments
-            .Where(a => a.RoleOnStage == EmployeeRole.Measurer && a.Status != AssignmentStatus.Cancelled)
-            .Select(a => a.Employee.FullName)
-            .Distinct());
+    var children = (IReadOnlyList<Order>)ViewBag.Children;
+    var history = (IReadOnlyList<ChangeHistory>)ViewBag.History;
+    var available = (IReadOnlyList<Employee>)ViewBag.Available;
+    var isClosed = OrderService.IsClosed(Model);
+    var itemsEditable = Model.Status is OrderStatus.New or OrderStatus.MeasurementAndApproval;
 }
-
-<a class="back-link" asp-action="Index">К списку заказов</a>
-<div class="page-heading order-heading">
-    <div>
-        <h1>Заказ</h1>
-        <p class="order-number secondary-number">@Model.Number</p>
+<div class="content order-card">
+    <a class="text-link back-link" asp-action="Index">Все заказы</a>
+    <div class="page-heading">
+        <h1>Заказ @Model.Number</h1>
+        <span class="order-status @(Model.Status == OrderStatus.New ? "status-queued" : "status-assigned")">@Model.Status.Ru()</span>
     </div>
-    <span class="status-badge @(Model.Status == OrderStatus.New ? "status-waiting" : "")">@Model.Status.Ru()</span>
-</div>
-
-<div class="details-grid">
-    <section class="surface detail-panel">
-        <h2>Данные заказа</h2>
-        <dl class="detail-list">
-            <dt>Клиент</dt>
-            <dd>@Model.Client.FullName</dd>
-            <dt>Адрес выполнения</dt>
-            <dd>@Model.ExecutionAddress</dd>
-            <dt>Плановый срок</dt>
-            <dd>@Model.PlannedCompletionDate.ToString("dd.MM.yyyy")</dd>
-            <dt>Ответственный администратор</dt>
-            <dd>@Model.ResponsibleAdministrator.FullName</dd>
-            @if (!string.IsNullOrWhiteSpace(Model.CustomerWishes))
-            {
-                <dt>Пожелания клиента</dt>
-                <dd class="wishes">@Model.CustomerWishes</dd>
-            }
-        </dl>
-    </section>
-
-    @if (stage is not null)
+    <partial name="_Notice" />
+    @if (Model.ParentOrder is not null)
     {
-        <section class="surface detail-panel">
-            <h2>@stage.Type.Ru()</h2>
-            <dl class="detail-list">
-                <dt>Состояние этапа</dt>
-                <dd>@stage.Status.Ru()</dd>
-                <dt>Замерщик</dt>
-                <dd>
-                    @if (!string.IsNullOrEmpty(measurers))
-                    {
-                        @measurers
-                    }
-                    else
-                    {
-                        @(stage.Status == StageStatus.WaitingForAssignee ? "Ожидает замерщика" : "Без назначения")
-                    }
-                </dd>
-            </dl>
+        <p>Подзаказ к <a class="text-link" asp-action="Details" asp-route-id="@Model.ParentOrderId">@Model.ParentOrder.Number</a> · @Model.SubOrderReason?.Ru()</p>
+    }
+    <dl class="contact-details">
+        <div><dt>Клиент</dt><dd><a class="text-link" asp-controller="Clients" asp-action="Details" asp-route-id="@Model.ClientId">@Model.Client.FullName</a></dd></div>
+        <div><dt>Телефон</dt><dd>@Model.Client.Phone</dd></div>
+        <div><dt>Адрес выполнения</dt><dd>@Model.ExecutionAddress</dd></div>
+        <div><dt>Ответственный</dt><dd>@Model.ResponsibleAdministrator.FullName</dd></div>
+        <div><dt>Плановый срок</dt><dd>@Model.PlannedCompletionDate.ToString("dd.MM.yyyy")</dd></div>
+        <div><dt>Пожелания</dt><dd class="multiline">@(Model.CustomerWishes ?? "—")</dd></div>
+    </dl>
+    @if (!isClosed)
+    {
+        <details class="section-block">
+            <summary>Редактировать заказ</summary>
+            <form class="editor-form order-form" asp-action="Edit" asp-route-id="@Model.Id" method="post">
+                <label>Адрес выполнения <input name="ExecutionAddress" value="@Model.ExecutionAddress" maxlength="500" required></label>
+                <label>Плановый срок <input type="date" name="PlannedCompletionDate" value="@Model.PlannedCompletionDate.ToString("yyyy-MM-dd")" required></label>
+                <label>Пожелания клиента <textarea name="CustomerWishes" rows="3">@Model.CustomerWishes</textarea></label>
+                <button class="button button-primary">Сохранить</button>
+            </form>
+        </details>
+    }
+    <section class="section-block">
+        <h2 class="subheading">Этапы и исполнители</h2>
+        @foreach (var type in Enum.GetValues<StageType>())
+        {
+            var stage = Model.Stages.SingleOrDefault(stage => stage.Type == type);
+            var assigned = stage?.Assignments.Where(assignment => assignment.Status != AssignmentStatus.Cancelled).ToList() ?? [];
+            var open = stage?.Assignments.Where(OrderService.IsOpen).ToList() ?? [];
+            var candidates = available.Where(employee => employee.Roles.Contains(type.WorkerRole())).ToList();
+            var actionable = !isClosed && stage is not null && !OrderService.IsFinished(stage) && stage.Status != StageStatus.WaitingPreviousStage;
+            <section class="stage-panel">
+                <h3 class="subheading">@type.Ru()</h3>
+                <p>@((stage?.Status ?? StageStatus.WaitingPreviousStage).Ru())</p>
+                @if (stage?.Status == StageStatus.WaitingForAssignee) { <p>Этап в очереди на назначение.</p> }
+                @if (stage?.PlannedDate is DateOnly planned) { <p>Плановая дата @planned.ToString("dd.MM.yyyy")</p> }
+                @if (!string.IsNullOrWhiteSpace(stage?.Result)) { <p class="multiline">@stage.Result</p> }
+                @if (assigned.Count > 0)
+                {
+                    <ul class="work-list">
+                        @foreach (var assignment in assigned)
+                        {
+                            <li>@assignment.Employee.FullName · @assignment.Status.Ru()</li>
+                        }
+                    </ul>
+                }
+                @if (actionable && candidates.Count > 0)
+                {
+                    <details>
+                        <summary>Назначить сотрудника</summary>
+                        <form class="editor-form order-form" asp-action="Assign" asp-route-id="@Model.Id" method="post">
+                            <input type="hidden" name="stageId" value="@stage!.Id">
+                            <label>Сотрудник
+                                <select name="employeeId" required>
+                                    <option value="">Выберите сотрудника</option>
+                                    @foreach (var employee in candidates) { <option value="@employee.Id">@employee.FullName</option> }
+                                </select>
+                            </label>
+                            @if (open.Count > 0)
+                            {
+                                <label>Действие
+                                    <select name="replaceId">
+                                        <option value="">Добавить к этапу</option>
+                                        @foreach (var assignment in open)
+                                        {
+                                            <option value="@assignment.Id">Заменить @assignment.Employee.FullName</option>
+                                        }
+                                    </select>
+                                </label>
+                            }
+                            <button class="button button-secondary">Назначить</button>
+                        </form>
+                    </details>
+                }
+                @if (actionable && Model.ParentOrderId.HasValue && stage!.StartedAt is null)
+                {
+                    <details>
+                        <summary>Пропустить этап</summary>
+                        <form class="editor-form order-form" asp-action="Skip" asp-route-id="@Model.Id" method="post">
+                            <input type="hidden" name="type" value="@type">
+                            <label>Причина <input name="reason" required></label>
+                            <button class="button button-secondary">Пропустить</button>
+                        </form>
+                    </details>
+                }
+            </section>
+        }
+    </section>
+    @if (Model.Measurements.Count > 0)
+    {
+        <section class="section-block">
+            <h2 class="subheading">Замеры</h2>
+            <partial name="_Measurements" model="Model.Measurements" />
         </section>
+    }
+    <section class="section-block">
+        <h2 class="subheading">Изделия и готовность</h2>
+        @if (Model.Items.Count == 0) { <p class="empty-line">Изделия ещё не добавлены.</p> }
+        @foreach (var item in Model.Items.OrderBy(item => item.Id))
+        {
+            <div class="stage-panel">
+                <h3 class="subheading">@item.Name · @item.Quantity шт.</h3>
+                <p>@item.FurnitureType · @item.Width × @item.Height × @item.Depth мм · @item.Material · @item.Color</p>
+                @if (item.AgreedUnitPrice.HasValue) { <p>Цена за единицу @item.AgreedUnitPrice.Value.ToString("N2") ₽</p> }
+                @if (!string.IsNullOrWhiteSpace(item.AdditionalCharacteristics)) { <p class="multiline">@item.AdditionalCharacteristics</p> }
+                @if (item.Elements.Count > 0)
+                {
+                    <div class="table-scroll" tabindex="0" aria-label="Готовность элементов">
+                        <table>
+                            <thead><tr><th scope="col">Элемент</th><th scope="col">Изготовлено</th><th scope="col">Доставлено</th><th scope="col">Установлено</th></tr></thead>
+                            <tbody>
+                            @foreach (var element in item.Elements)
+                            {
+                                <tr><th scope="row">@element.Name @if (element.ProblemComment is not null) { <br><span class="optional">@element.ProblemComment</span> }</th>
+                                    <td>@element.ProducedQuantity / @element.RequiredQuantity</td>
+                                    <td>@element.DeliveredQuantity / @element.RequiredQuantity</td>
+                                    <td>@element.InstalledQuantity / @element.RequiredQuantity</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                @if (itemsEditable)
+                {
+                    <details>
+                        <summary>Редактировать изделие</summary>
+                        <form class="editor-form order-form" asp-action="Item" asp-route-id="@Model.Id" asp-route-itemId="@item.Id" method="post">
+                            <partial name="_ItemFields" model="item" view-data="@(new ViewDataDictionary(ViewData) { ["IncludePrices"] = true })" />
+                            <button class="button button-primary">Сохранить изделие</button>
+                        </form>
+                        <form asp-action="RemoveItem" asp-route-id="@Model.Id" asp-route-itemId="@item.Id" method="post" data-confirm="Удалить изделие из заказа?">
+                            <button class="button button-secondary">Удалить изделие</button>
+                        </form>
+                    </details>
+                }
+            </div>
+        }
+        @if (itemsEditable)
+        {
+            <details class="section-block">
+                <summary>Добавить изделие</summary>
+                <form class="editor-form order-form" asp-action="Item" asp-route-id="@Model.Id" method="post">
+                    <partial name="_ItemFields" model="@(new OrderItem { Quantity = 1 })" view-data="@(new ViewDataDictionary(ViewData) { ["IncludePrices"] = true })" />
+                    <button class="button button-primary">Добавить изделие</button>
+                </form>
+            </details>
+        }
+        @if (Model.Status == OrderStatus.MeasurementAndApproval && Model.Items.Count > 0 &&
+            Model.Measurements.Any(measurement => measurement.Status == MeasurementStatus.Completed) &&
+            Model.Stages.Where(stage => stage.Type == StageType.MeasurementAndApproval).SelectMany(stage => stage.Assignments).All(assignment => !OrderService.IsOpen(assignment)))
+        {
+            <form class="editor-form order-form" asp-action="Agree" asp-route-id="@Model.Id" method="post">
+                <label>Согласованная стоимость, ₽ <input inputmode="decimal" name="cost" value="@Model.AgreedCost" required></label>
+                <button class="button button-primary">Согласовать и передать в производство</button>
+            </form>
+        }
+    </section>
+    <partial name="_Payments" model="Model" />
+    <section class="section-block">
+        <div class="subheading">
+            <h2>Подзаказы</h2>
+            @if (Model.Status != OrderStatus.Cancelled)
+            {
+                <a class="text-link" asp-action="Create" asp-route-parentOrderId="@Model.Id">Создать подзаказ</a>
+            }
+        </div>
+        @if (children.Count == 0) { <p class="empty-line">Подзаказов пока нет.</p> }
+        <ul class="recent-list">
+        @foreach (var child in children)
+        {
+            <li><a class="text-link" asp-action="Details" asp-route-id="@child.Id">@child.Number</a><span>@child.SubOrderReason?.Ru() · @child.Status.Ru()</span></li>
+        }
+        </ul>
+    </section>
+    <details class="section-block">
+        <summary>История изменений</summary>
+        <ul class="work-list">
+        @foreach (var entry in history)
+        {
+            <li>@WorkshopDates.Local(entry.ChangedAt).ToString("dd.MM.yyyy HH:mm") · @(entry.Employee?.FullName ?? "Система") · @entry.Action
+                @if (entry.OldValue is not null) { <span> · @entry.OldValue → @entry.NewValue</span> }
+                else if (entry.NewValue is not null) { <span> · @entry.NewValue</span> }
+                @if (entry.Comment is not null) { <div class="multiline">@entry.Comment</div> }
+            </li>
+        }
+        </ul>
+    </details>
+    @if (!isClosed)
+    {
+        <details class="section-block">
+            <summary>Отменить заказ</summary>
+            <form class="editor-form order-form" asp-action="Cancel" asp-route-id="@Model.Id" method="post" data-confirm="Отменить заказ?">
+                <label>Причина отмены <textarea name="reason" rows="2" required></textarea></label>
+                <button class="button button-secondary">Отменить заказ</button>
+            </form>
+        </details>
     }
 </div>

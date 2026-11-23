@@ -37,3 +37,53 @@ public static class StatusNames
         _ => t.ToString()
     };
 }
+
+public static class WorkflowNames
+{
+    public static EmployeeRole WorkerRole(this StageType type) => type switch
+    {
+        StageType.MeasurementAndApproval => EmployeeRole.Measurer,
+        StageType.Production => EmployeeRole.ProductionWorker,
+        StageType.Delivery => EmployeeRole.Courier,
+        StageType.Assembly => EmployeeRole.Assembler,
+        _ => throw new ArgumentOutOfRangeException(nameof(type))
+    };
+
+    public static string Ru(this EmployeeRole role) => role switch
+    {
+        EmployeeRole.Administrator => "Администратор",
+        EmployeeRole.Measurer => "Замерщик",
+        EmployeeRole.ProductionWorker => "Работник производства",
+        EmployeeRole.Courier => "Доставщик",
+        EmployeeRole.Assembler => "Сборщик",
+        _ => role.ToString()
+    };
+
+    public static string Ru(this AssignmentStatus status) => status switch
+    {
+        AssignmentStatus.Assigned => "Назначено",
+        AssignmentStatus.Accepted => "В работе",
+        AssignmentStatus.Completed => "Завершено",
+        AssignmentStatus.Cancelled => "Снято",
+        _ => status.ToString()
+    };
+
+    public static string Ru(this SubOrderReason reason) => reason switch
+    {
+        SubOrderReason.Addition => "Дополнение",
+        SubOrderReason.MissingPart => "Нехватка детали",
+        SubOrderReason.Defect => "Брак",
+        SubOrderReason.Rework => "Доработка",
+        _ => reason.ToString()
+    };
+
+    public static string Ru(this PaymentMethod method) => method switch
+    {
+        PaymentMethod.Cash => "Наличные",
+        PaymentMethod.Transfer => "Перевод",
+        PaymentMethod.Card => "Карта",
+        _ => method.ToString()
+    };
+
+    public static string Ru(this PaymentType type) => type == PaymentType.Receipt ? "Поступление" : "Возврат";
+}

@@ -22,6 +22,13 @@ public sealed class OrderForm
     [DataType(DataType.Date)]
     public DateOnly? PlannedCompletionDate { get; set; }
 
+    public int? ParentOrderId { get; set; }
+    [EnumDataType(typeof(SubOrderReason))]
+    public SubOrderReason? SubOrderReason { get; set; }
+
+    [BindNever]
+    public string? ParentNumber { get; set; }
+
     [BindNever]
     public IReadOnlyList<ClientChoice> Clients { get; set; } = [];
 }

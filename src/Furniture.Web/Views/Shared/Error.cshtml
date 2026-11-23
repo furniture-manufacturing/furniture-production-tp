@@ -1,16 +1,5 @@
-﻿@model ErrorViewModel
-@{
-    ViewData["Title"] = "Ошибка";
-}
-
+@model ErrorViewModel
+@{ ViewData["Title"] = "Ошибка"; }
 <h1>Не удалось выполнить запрос</h1>
-<p>Попробуйте ещё раз или вернитесь к списку заказов.</p>
-
-@if (Model.ShowRequestId)
-{
-    <p>
-        Номер запроса <code>@Model.RequestId</code>
-    </p>
-}
-
-<a asp-controller="Orders" asp-action="Index">К списку заказов</a>
+<p>Вернитесь на главную страницу и повторите действие.</p>
+<a class="text-link" asp-controller="Home" asp-action="Index">На главную</a>
