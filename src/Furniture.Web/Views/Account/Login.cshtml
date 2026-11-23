@@ -1,0 +1,15 @@
+@model string
+@{ ViewData["Title"] = "Вход"; }
+<p class="account-name">Мебельное производство</p>
+<h1>Вход</h1>
+<form asp-action="Login" method="post" class="editor-form">
+    <input type="hidden" name="returnUrl" value="@Model">
+    <div asp-validation-summary="ModelOnly" role="alert"></div>
+    <label>Логин
+        <input name="login" autocomplete="username" autocapitalize="none" maxlength="40" required>
+    </label>
+    <label>Пароль
+        <input name="password" type="password" autocomplete="current-password" maxlength="128" required>
+    </label>
+    <div class="form-actions"><button class="button button-primary" type="submit">Войти</button></div>
+</form>

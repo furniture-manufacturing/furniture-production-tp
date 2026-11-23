@@ -1,0 +1,56 @@
+@model Dashboard
+@{ ViewData["Title"] = "Обзор"; }
+<div class="content">
+    <div class="page-heading">
+        <h1>Обзор</h1>
+        <a class="button button-primary" asp-controller="Orders" asp-action="Create">Создать заказ</a>
+    </div>
+    <dl class="summary">
+        <div><dt><a class="text-link" asp-controller="Clients" asp-action="Index">Клиенты</a></dt><dd>@Model.ClientCount</dd></div>
+        <div><dt><a class="text-link" asp-controller="Orders" asp-action="Index">Всего заказов</a></dt><dd>@Model.MainOrders.Count</dd></div>
+        <div><dt><a class="text-link" asp-controller="Orders" asp-action="Index" asp-route-waiting="true">Ждут исполнителя</a></dt><dd>@(Model.MainOrders.Waiting + Model.SubOrders.Waiting)</dd></div>
+    </dl>
+    <section class="section-block">
+        <div class="subheading">
+            <h2>Последние добавленные клиенты</h2>
+            <a class="text-link" asp-controller="Clients" asp-action="Index">Все клиенты</a>
+        </div>
+        @if (Model.RecentClients.Count == 0)
+        {
+            <p class="empty-line">Пока нет клиентов.</p>
+        }
+        <ul class="recent-list">
+        @foreach (var client in Model.RecentClients)
+        {
+            <li>
+                <a class="text-link" asp-controller="Clients" asp-action="Details" asp-route-id="@client.Id">@client.FullName</a>
+                <span class="phone">@client.Phone</span>
+            </li>
+        }
+        </ul>
+    </section>
+    <section class="section-block">
+        <h2>Статистика заказов</h2>
+        <form method="get" class="filters narrow-filters">
+            <label>Платежи с <input type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")"></label>
+            <label>По <input type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")"></label>
+            <button type="submit" class="button button-secondary">Показать</button>
+        </form>
+        <div class="table-scroll" tabindex="0" aria-label="Статистика">
+            <table>
+                <thead><tr><th scope="col">Показатель</th><th scope="col">Заказы</th><th scope="col">Подзаказы</th></tr></thead>
+                <tbody>
+                @foreach (var status in Enum.GetValues<OrderStatus>())
+                {
+                    <tr><th scope="row">@status.Ru()</th><td>@Model.MainOrders.Statuses.GetValueOrDefault(status)</td><td>@Model.SubOrders.Statuses.GetValueOrDefault(status)</td></tr>
+                }
+                    <tr><th scope="row">Просрочены</th><td>@Model.MainOrders.Overdue</td><td>@Model.SubOrders.Overdue</td></tr>
+                    <tr><th scope="row">Ждут исполнителя</th><td>@Model.MainOrders.Waiting</td><td>@Model.SubOrders.Waiting</td></tr>
+                    <tr><th scope="row">Поступления за период</th><td class="amount">@Model.MainOrders.Receipts.ToString("N2") ₽</td><td class="amount">@Model.SubOrders.Receipts.ToString("N2") ₽</td></tr>
+                    <tr><th scope="row">Возвраты за период</th><td class="amount">@Model.MainOrders.Refunds.ToString("N2") ₽</td><td class="amount">@Model.SubOrders.Refunds.ToString("N2") ₽</td></tr>
+                    <tr><th scope="row">Текущая задолженность</th><td class="amount">@Model.MainOrders.Debt.ToString("N2") ₽</td><td class="amount">@Model.SubOrders.Debt.ToString("N2") ₽</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>

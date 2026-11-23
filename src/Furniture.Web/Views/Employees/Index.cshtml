@@ -1,0 +1,64 @@
+@model EmployeeForm
+@{
+    ViewData["Title"] = "Сотрудники";
+    ViewData["Wide"] = true;
+    var employees = (IReadOnlyList<Employee>)ViewBag.Employees;
+    var roles = Enum.GetValues<EmployeeRole>();
+}
+<div>
+    <div class="page-heading"><h1>Сотрудники</h1></div>
+    <partial name="_Notice" />
+    <div class="table-scroll" role="region" tabindex="0" aria-label="Список сотрудников">
+        <table>
+            <thead><tr><th scope="col">Сотрудник</th><th scope="col">Роли</th><th scope="col">Доступ</th></tr></thead>
+            <tbody>
+            @foreach (var employee in employees)
+            {
+                <tr>
+                    <th scope="row">@employee.FullName<br><span class="optional">@employee.Login · @employee.Phone</span></th>
+                    <td>
+                        <details>
+                            <summary>@string.Join(", ", employee.Roles.Select(role => role.Ru()))</summary>
+                            <form asp-action="ChangeRoles" asp-route-id="@employee.Id" method="post" class="editor-form compact-form">
+                                <fieldset class="role-options">
+                                    <legend>Роли сотрудника</legend>
+                                    @foreach (var role in roles)
+                                    {
+                                        <label class="inline-check"><input type="checkbox" name="roles" value="@role" checked="@employee.Roles.Contains(role)"> @role.Ru()</label>
+                                    }
+                                </fieldset>
+                                <button class="button button-secondary">Сохранить роли</button>
+                            </form>
+                        </details>
+                    </td>
+                    <td>
+                        <p>@(employee.IsActive ? "Активен" : "Отключён")</p>
+                        <form asp-action="ChangeActivity" asp-route-id="@employee.Id" method="post">
+                            <input type="hidden" name="active" value="@(!employee.IsActive ? "true" : "false")">
+                            <button class="button button-secondary">@(employee.IsActive ? "Отключить" : "Включить")</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+<aside class="editor">
+    <h2>Добавить сотрудника</h2>
+    <form asp-action="Create" method="post" class="editor-form">
+        <div asp-validation-summary="All" role="alert"></div>
+        <label>ФИО <input asp-for="FullName" maxlength="200" required></label>
+        <label>Телефон <input asp-for="Phone" type="tel" maxlength="30" required></label>
+        <label>Логин <input asp-for="Login" minlength="3" maxlength="40" autocomplete="off" required></label>
+        <label>Пароль <input asp-for="Password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label>
+        <fieldset class="role-options">
+            <legend>Роли</legend>
+            @foreach (var role in roles)
+            {
+                <label class="inline-check"><input type="checkbox" name="roles" value="@role" checked="@Model.Roles.Contains(role)"> @role.Ru()</label>
+            }
+        </fieldset>
+        <button class="button button-primary">Создать учётную запись</button>
+    </form>
+</aside>

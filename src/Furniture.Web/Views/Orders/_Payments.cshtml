@@ -1,0 +1,68 @@
+@model Order
+@using Furniture.Web.Services
+@{
+    var balance = Model.Balance;
+    var paymentStatus = balance is <= 0 ? "Оплачен" : Model.NetPaid > 0 ? "Частично оплачен" : "Не оплачен";
+}
+<section class="section-block">
+    <h2 class="subheading">Оплата</h2>
+    <dl class="contact-details">
+        <div><dt>Стоимость</dt><dd>@(Model.AgreedCost is decimal cost ? cost.ToString("N2") + " ₽" : "Не согласована")</dd></div>
+        <div><dt>Оплачено с учётом возвратов</dt><dd>@Model.NetPaid.ToString("N2") ₽</dd></div>
+        <div><dt>Состояние</dt><dd>@paymentStatus</dd></div>
+        @if (balance.HasValue)
+        {
+            <div><dt>@(balance < 0 ? "Переплата" : "Остаток")</dt><dd>@Math.Abs(balance.Value).ToString("N2") ₽</dd></div>
+        }
+    </dl>
+    @if (Model.Payments.Count > 0)
+    {
+        <div class="table-scroll" tabindex="0" aria-label="Платежи">
+            <table>
+                <thead><tr><th scope="col">Дата</th><th scope="col">Операция</th><th scope="col">Способ</th><th scope="col">Сумма</th></tr></thead>
+                <tbody>
+                @foreach (var entry in Model.Payments.OrderByDescending(payment => payment.Date))
+                {
+                    <tr><td>@WorkshopDates.Local(entry.Date).ToString("dd.MM.yyyy")</td>
+                        <td>@entry.Type.Ru()<br><span class="optional">@entry.Administrator.FullName @entry.Comment</span></td>
+                        <td>@entry.Method.Ru()</td><td class="amount">@entry.Amount.ToString("N2") ₽</td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    @if (!OrderService.IsClosed(Model) && (Model.AgreedCost.HasValue || Model.ParentOrderId.HasValue))
+    {
+        <details class="section-block">
+            <summary>Указать стоимость</summary>
+            <form class="editor-form order-form" asp-action="Price" asp-route-id="@Model.Id" method="post">
+                <label>Стоимость, ₽ <input inputmode="decimal" name="cost" value="@Model.AgreedCost" required></label>
+                <button class="button button-secondary">Сохранить стоимость</button>
+            </form>
+        </details>
+    }
+    @if (Model.Status != OrderStatus.Cancelled || Model.NetPaid > 0)
+    {
+        <details class="section-block">
+            <summary>Зарегистрировать платёж</summary>
+            <form class="editor-form order-form" asp-action="Payment" asp-route-id="@Model.Id" method="post">
+                <div class="form-grid">
+                    <label>Операция
+                        <select name="type">
+                            @if (Model.Status != OrderStatus.Cancelled) { <option value="Receipt">Поступление</option> }
+                            @if (Model.NetPaid > 0) { <option value="Refund">Возврат</option> }
+                        </select>
+                    </label>
+                    <label>Способ оплаты
+                        <select name="method">
+                            @foreach (var method in Enum.GetValues<PaymentMethod>()) { <option value="@method">@method.Ru()</option> }
+                        </select>
+                    </label>
+                </div>
+                <label>Сумма, ₽ <input inputmode="decimal" name="amount" required></label>
+                <label>Комментарий <input name="comment" placeholder="Например, предоплата"></label>
+                <button class="button button-primary">Зарегистрировать</button>
+            </form>
+        </details>
+    }
+</section>

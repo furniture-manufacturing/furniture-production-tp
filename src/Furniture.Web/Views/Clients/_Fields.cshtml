@@ -1,0 +1,18 @@
+@model ClientForm
+<label asp-for="FullName">
+    ФИО <input asp-for="FullName" autocomplete="name" maxlength="200" required>
+    <span asp-validation-for="FullName"></span>
+</label>
+<label asp-for="Phone">
+    Телефон <input asp-for="Phone" type="tel" autocomplete="tel" maxlength="30" required>
+    <span asp-validation-for="Phone"></span>
+</label>
+<label asp-for="DefaultAddress">
+    Адрес <input asp-for="DefaultAddress" autocomplete="street-address" maxlength="500" required>
+    <span asp-validation-for="DefaultAddress"></span>
+</label>
+<label asp-for="Email">
+    Электронная почта <span class="optional">(необязательно)</span>
+    <input asp-for="Email" type="email" autocomplete="email" maxlength="200">
+    <span asp-validation-for="Email"></span>
+</label>

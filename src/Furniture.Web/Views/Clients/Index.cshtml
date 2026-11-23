@@ -1,0 +1,41 @@
+@model ClientForm
+@{
+    ViewData["Title"] = "Клиенты";
+    ViewData["Wide"] = true;
+    var clients = (IReadOnlyList<Client>)ViewBag.Clients;
+    var q = Context.Request.Query["q"].ToString();
+}
+<div>
+    <div class="page-heading"><h1>Клиенты</h1></div>
+    <partial name="_Notice" />
+    <form class="filters" method="get">
+        <label>Поиск по ФИО или телефону <input name="q" type="search" value="@q"></label>
+        <button class="button button-secondary">Найти</button>
+        @if (q.Length > 0) { <a class="text-link" asp-action="Index">Сбросить</a> }
+    </form>
+    <div class="table-scroll" role="region" tabindex="0" aria-label="Список клиентов">
+        <table class="directory">
+            <thead><tr><th scope="col">Клиент</th><th scope="col">Телефон</th><th scope="col">Электронная почта</th><th scope="col">Действия</th></tr></thead>
+            <tbody>
+            @if (clients.Count == 0) { <tr><td class="empty" colspan="4">Клиенты не найдены.</td></tr> }
+            @foreach (var client in clients)
+            {
+                <tr>
+                    <th scope="row"><a class="text-link" asp-action="Details" asp-route-id="@client.Id">@client.FullName</a></th>
+                    <td class="phone">@client.Phone</td><td>@(client.Email ?? "—")</td>
+                    <td><a class="text-link" asp-controller="Orders" asp-action="Create" asp-route-clientId="@client.Id">Создать заказ</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <p class="totals">Всего <strong>@clients.Count</strong></p>
+</div>
+<aside class="editor">
+    <h2>Добавить клиента</h2>
+    <form asp-action="Create" method="post" class="editor-form">
+        <input type="hidden" name="forOrder" value="false">
+        <partial name="_Fields" model="Model" />
+        <button class="button button-primary">Добавить</button>
+    </form>
+</aside>

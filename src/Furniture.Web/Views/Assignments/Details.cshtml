@@ -1,0 +1,164 @@
+@model EmployeeAssignment
+@using Furniture.Web.Services
+@{
+    var stage = Model.OrderStage;
+    var order = stage.Order;
+    var type = stage.Type;
+    var measurement = type == StageType.MeasurementAndApproval;
+    var production = type == StageType.Production;
+    ViewData["Title"] = $"{type.Ru()} · {order.Number}";
+}
+<div class="content order-card">
+    <a class="back-link text-link" asp-action="Index">Мои назначения</a>
+    <div class="page-heading">
+        <h1>@type.Ru() · @order.Number</h1>
+        <span class="order-status status-assigned">@Model.Status.Ru()</span>
+    </div>
+    <partial name="_Notice" />
+    <dl class="contact-details">
+        @if (!production)
+        {
+            <div><dt>Клиент</dt><dd>@order.Client.FullName</dd></div>
+            <div><dt>Телефон</dt><dd>@order.Client.Phone</dd></div>
+            <div><dt>Адрес</dt><dd>@order.ExecutionAddress</dd></div>
+        }
+        <div><dt>Плановый срок заказа</dt><dd>@order.PlannedCompletionDate.ToString("dd.MM.yyyy")</dd></div>
+        @if (type != StageType.Delivery && order.CustomerWishes is not null)
+        {
+            <div><dt>Пожелания</dt><dd class="multiline">@order.CustomerWishes</dd></div>
+        }
+    </dl>
+    @if (Model.Status == AssignmentStatus.Assigned)
+    {
+        <form class="section-block" asp-action="Accept" asp-route-id="@Model.Id" method="post">
+            <button class="button button-primary">Принять в работу</button>
+        </form>
+    }
+    else
+    {
+        @if (type != StageType.Delivery && order.Measurements.Count > 0)
+        {
+            <section class="section-block">
+                <h2 class="subheading">Замеры</h2>
+                <partial name="_Measurements" model="order.Measurements" />
+            </section>
+        }
+        <section class="section-block">
+            <h2 class="subheading">Изделия</h2>
+            @if (order.Items.Count == 0) { <p class="empty-line">Изделия ещё не добавлены.</p> }
+            @foreach (var item in order.Items.OrderBy(item => item.Id))
+            {
+                <div class="stage-panel">
+                    <h3 class="subheading">@item.Name · @item.Quantity шт.</h3>
+                    @if (type != StageType.Delivery)
+                    {
+                        <p>@item.FurnitureType · @item.Width × @item.Height × @item.Depth мм · @item.Material · @item.Color</p>
+                        @if (item.AdditionalCharacteristics is not null) { <p class="multiline">@item.AdditionalCharacteristics</p> }
+                    }
+                    @if (measurement)
+                    {
+                        <details>
+                            <summary>Уточнить параметры изделия</summary>
+                            <form asp-action="Item" asp-route-id="@Model.Id" asp-route-itemId="@item.Id" method="post" class="editor-form">
+                                <partial name="_ItemFields" model="item" />
+                                <button class="button button-secondary">Сохранить изделие</button>
+                            </form>
+                        </details>
+                    }
+                    else
+                    {
+                        @foreach (var element in item.Elements.OrderBy(element => element.Id))
+                        {
+                            var quantity = type switch
+                            {
+                                StageType.Production => element.ProducedQuantity,
+                                StageType.Delivery => element.DeliveredQuantity,
+                                _ => element.InstalledQuantity
+                            };
+                            var label = type switch
+                            {
+                                StageType.Production => "Изготовлено",
+                                StageType.Delivery => "Доставлено",
+                                _ => "Установлено"
+                            };
+                            <details class="section-block">
+                                <summary>@element.Name · @label.ToLowerInvariant() @quantity из @element.RequiredQuantity</summary>
+                                @if (element.ProblemComment is not null) { <p class="multiline">@element.ProblemComment</p> }
+                                <form asp-action="Progress" asp-route-id="@Model.Id" method="post" class="editor-form">
+                                    <input type="hidden" name="elementId" value="@element.Id">
+                                    <label>@label <input type="number" name="quantity" min="0" max="@element.RequiredQuantity" value="@quantity" required></label>
+                                    <label>Брак, нехватка или другие проблемы <textarea name="problem" rows="2"></textarea></label>
+                                    <button class="button button-secondary">Сохранить количество</button>
+                                </form>
+                            </details>
+                        }
+                    }
+                    @if (OrderService.CanDefineElements(order, type))
+                    {
+                        <details class="section-block">
+                            <summary>Добавить элемент</summary>
+                            <form asp-action="Element" asp-route-id="@Model.Id" method="post" class="editor-form">
+                                <input type="hidden" name="itemId" value="@item.Id">
+                                <label>Наименование <input name="name" maxlength="200" required></label>
+                                <label>Требуемое количество <input type="number" name="quantity" min="1" max="1000000" required></label>
+                                <button class="button button-secondary">Добавить элемент</button>
+                            </form>
+                        </details>
+                    }
+                </div>
+            }
+            @if (measurement)
+            {
+                <details class="section-block">
+                    <summary>Добавить изделие по замеру</summary>
+                    <form asp-action="Item" asp-route-id="@Model.Id" method="post" class="editor-form order-form">
+                        <partial name="_ItemFields" model="@(new OrderItem { Quantity = 1 })" />
+                        <button class="button button-secondary">Добавить изделие</button>
+                    </form>
+                </details>
+            }
+        </section>
+        @if (measurement)
+        {
+            var visit = order.Measurements.Where(visit => visit.MeasurerId == Model.EmployeeId && visit.Status == MeasurementStatus.Scheduled)
+                .MaxBy(visit => visit.Id);
+            <section class="section-block">
+                <h2 class="subheading">Результаты замера</h2>
+                <form asp-action="Measurement" asp-route-id="@Model.Id" method="post" class="editor-form order-form">
+                    <div class="form-grid">
+                        <label>Плановая дата <input type="date" name="PlannedDate" value="@visit?.PlannedDate?.ToString("yyyy-MM-dd")"></label>
+                        <label>Фактическая дата <input type="date" name="ActualDate" value="@visit?.ActualDate?.ToString("yyyy-MM-dd")"></label>
+                    </div>
+                    <label>Размеры помещения <textarea name="RoomDimensions" maxlength="2000" rows="2">@visit?.RoomDimensions</textarea></label>
+                    <label>Особенности помещения <textarea name="PlacementFeatures" maxlength="2000" rows="2">@visit?.PlacementFeatures</textarea></label>
+                    <label>Пожелания клиента <textarea name="CustomerWishes" maxlength="2000" rows="2">@visit?.CustomerWishes</textarea></label>
+                    <label>Комментарий <textarea name="Comment" maxlength="2000" rows="2">@visit?.Comment</textarea></label>
+                    @if (visit is not null)
+                    {
+                        <label class="inline-check"><input type="checkbox" name="newVisit" value="true"> Сохранить как новый выезд</label>
+                    }
+                    <div class="form-actions">
+                        <button class="button button-secondary" name="complete" value="false">Сохранить</button>
+                        <button class="button button-primary" name="complete" value="true">Завершить замер</button>
+                    </div>
+                </form>
+            </section>
+        }
+        else
+        {
+            <section class="section-block">
+                <h2 class="subheading">Результат работ</h2>
+                <form asp-action="Work" asp-route-id="@Model.Id" method="post" class="editor-form order-form">
+                    <label>@(type == StageType.Delivery ? "Дата выезда" : "Плановая дата")
+                        <input type="date" name="plannedDate" value="@stage.PlannedDate?.ToString("yyyy-MM-dd")">
+                    </label>
+                    <label>Работы и замечания <textarea name="result" rows="3">@stage.Result</textarea></label>
+                    <div class="form-actions">
+                        <button class="button button-secondary" name="complete" value="false">Сохранить</button>
+                        <button class="button button-primary" name="complete" value="true">Завершить этап</button>
+                    </div>
+                </form>
+            </section>
+        }
+    }
+</div>

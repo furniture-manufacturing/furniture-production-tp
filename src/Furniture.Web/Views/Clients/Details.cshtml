@@ -1,0 +1,43 @@
+@model ClientForm
+@{
+    ViewData["Title"] = Model.FullName;
+    ViewData["Wide"] = true;
+    var client = (Client)ViewBag.Client;
+    var orders = (IReadOnlyList<Order>)ViewBag.Orders;
+}
+<div>
+    <a class="text-link back-link" asp-action="Index">Все клиенты</a>
+    <div class="page-heading">
+        <h1>@client.FullName</h1>
+        <a class="button button-primary" asp-controller="Orders" asp-action="Create" asp-route-clientId="@client.Id">Создать заказ</a>
+    </div>
+    <partial name="_Notice" />
+    <dl class="contact-details">
+        <div><dt>Телефон</dt><dd>@client.Phone</dd></div>
+        <div><dt>Электронная почта</dt><dd>@(client.Email ?? "—")</dd></div>
+        <div><dt>Адрес</dt><dd>@client.DefaultAddress</dd></div>
+    </dl>
+    <section class="section-block">
+        <h2 class="subheading">Заказы клиента</h2>
+        @if (orders.Count == 0)
+        {
+            <p class="empty-line">Заказов пока нет.</p>
+            <form asp-action="Delete" asp-route-id="@client.Id" method="post" data-confirm="Удалить карточку клиента?">
+                <button class="button button-secondary">Удалить клиента</button>
+            </form>
+        }
+        <ul class="recent-list">
+        @foreach (var order in orders)
+        {
+            <li><a class="text-link" asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id">@order.Number</a><span>@order.Status.Ru()</span></li>
+        }
+        </ul>
+    </section>
+</div>
+<aside class="editor">
+    <h2>Редактировать клиента</h2>
+    <form asp-action="Edit" asp-route-id="@client.Id" method="post" class="editor-form">
+        <partial name="_Fields" model="Model" />
+        <button class="button button-primary">Сохранить</button>
+    </form>
+</aside>

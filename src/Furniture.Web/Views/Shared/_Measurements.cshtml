@@ -1,0 +1,15 @@
+@model IEnumerable<Measurement>
+@foreach (var measurement in Model.OrderByDescending(measurement => measurement.Id))
+{
+    <div class="stage-panel">
+        <strong>@(measurement.Status == MeasurementStatus.Completed ? "Замер завершён" : "Замер запланирован")</strong> · @measurement.Measurer.FullName
+        <dl class="contact-details">
+            <div><dt>Плановая дата</dt><dd>@(measurement.PlannedDate?.ToString("dd.MM.yyyy") ?? "—")</dd></div>
+            <div><dt>Фактическая дата</dt><dd>@(measurement.ActualDate?.ToString("dd.MM.yyyy") ?? "—")</dd></div>
+            <div><dt>Размеры помещения</dt><dd class="multiline">@(measurement.RoomDimensions ?? "—")</dd></div>
+            <div><dt>Особенности помещения</dt><dd class="multiline">@(measurement.PlacementFeatures ?? "—")</dd></div>
+            <div><dt>Пожелания</dt><dd class="multiline">@(measurement.CustomerWishes ?? "—")</dd></div>
+            <div><dt>Комментарий</dt><dd class="multiline">@(measurement.Comment ?? "—")</dd></div>
+        </dl>
+    </div>
+}

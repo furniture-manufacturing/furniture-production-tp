@@ -1,0 +1,20 @@
+@model OrderItem
+@{
+    var isAdmin = ViewData["IncludePrices"] is true;
+    var item = Model;
+}
+<div class="form-grid">
+    <label>Вид мебели <input name="FurnitureType" value="@item?.FurnitureType" maxlength="200" required></label>
+    <label>Наименование <input name="Name" value="@item?.Name" maxlength="200" required></label>
+    <label>Количество <input name="Quantity" type="number" min="1" max="1000000" value="@(item?.Quantity ?? 1)" required></label>
+    <label>Ширина, мм <input name="Width" inputmode="decimal" value="@item?.Width" required></label>
+    <label>Высота, мм <input name="Height" inputmode="decimal" value="@item?.Height" required></label>
+    <label>Глубина, мм <input name="Depth" inputmode="decimal" value="@item?.Depth" required></label>
+    <label>Материал <input name="Material" value="@item?.Material" maxlength="200" required></label>
+    <label>Цвет <input name="Color" value="@item?.Color" maxlength="200" required></label>
+</div>
+<label>Дополнительные характеристики <textarea name="AdditionalCharacteristics" rows="2" maxlength="2000">@item?.AdditionalCharacteristics</textarea></label>
+@if (isAdmin)
+{
+    <label>Цена за единицу, ₽ <input name="AgreedUnitPrice" inputmode="decimal" value="@item?.AgreedUnitPrice"></label>
+}

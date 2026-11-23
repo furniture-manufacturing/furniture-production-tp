@@ -1,0 +1,26 @@
+@model IReadOnlyList<EmployeeAssignment>
+@{ ViewData["Title"] = "Мои назначения"; }
+<div class="content">
+    <div class="page-heading"><h1>Мои назначения</h1></div>
+    <partial name="_Notice" />
+    @if (Model.Count == 0) { <p class="empty-line">Активных назначений пока нет.</p> }
+    @foreach (var assignment in Model)
+    {
+        var order = assignment.OrderStage.Order;
+        <section class="section-block">
+            <h2 class="subheading">
+                <a class="text-link" asp-action="Details" asp-route-id="@assignment.Id">@assignment.OrderStage.Type.Ru() · @order.Number</a>
+                <span class="order-status status-assigned">@assignment.Status.Ru()</span>
+            </h2>
+            <dl class="contact-details">
+                @if (assignment.OrderStage.Type != StageType.Production)
+                {
+                    <div><dt>Клиент</dt><dd>@order.Client.FullName</dd></div>
+                    <div><dt>Телефон</dt><dd>@order.Client.Phone</dd></div>
+                    <div><dt>Адрес</dt><dd>@order.ExecutionAddress</dd></div>
+                }
+                <div><dt>Плановый срок заказа</dt><dd>@order.PlannedCompletionDate.ToString("dd.MM.yyyy")</dd></div>
+            </dl>
+        </section>
+    }
+</div>
